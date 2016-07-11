@@ -4,10 +4,10 @@
 #include "data_structure.h"
 
 
-extern size_t 
+extern int 
 get_tests_size(const char* path);
 
-extern size_t
+extern int
 get_vehicle_size(const char* path);
 
 

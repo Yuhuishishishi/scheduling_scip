@@ -36,7 +36,8 @@ include $(SCIPDIR)/make/make.project
 
 MAINNAME	=	tp3s
 CMAINOBJ	=	json_read.o \
-				main.o
+			main.o \
+			reader_tp3s.o
 
 CXXMAINOBJ	=	 
 
@@ -54,7 +55,7 @@ MAINOBJFILES	+=	$(addprefix $(OBJDIR)/,$(CXXMAINOBJ))
 # External libraries
 #-----------------------------------------------------------------------------
 
-FLAGS		+= 
+FLAGS		+= -std=c99
 LDFLAGS		+= -ljansson
 
 #-----------------------------------------------------------------------------

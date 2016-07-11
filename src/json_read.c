@@ -8,7 +8,7 @@
 static int get_max_test_id(const char* path);
 static void test_id_remap(const char* path, int *id_remap);
 
-size_t get_tests_size(const char* path)
+int get_tests_size(const char* path)
 {
 	json_t *root, *tests_json;
 	json_error_t err;
@@ -27,7 +27,7 @@ size_t get_tests_size(const char* path)
 
 }
 
-size_t get_vehicle_size(const char* path)
+int get_vehicle_size(const char* path)
 {
 	json_t *root, *vehicles_json;
 	json_error_t err;
@@ -204,7 +204,6 @@ int get_max_test_id(const char* path)
 	json_t *root, *tests_json;
 	json_error_t err;
 
-	int *id_remap;
 	int max_test_id = -1;
 	int num_test;
 

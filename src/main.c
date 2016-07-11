@@ -1,67 +1,70 @@
 #include <stdio.h>
-#include <stdlib.h>
 
-#include "data_structure.h"
-#include <assert.h>s
+#include "scip/scip.h"
+#include "scip/scipshell.h"
+#include "scip/scipdefplugins.h"
 
-int main(int argc, char *argv[])
+
+static 
+SCIP_RETCODE runShell(
+	int			argc,
+	char** 		argv,
+	const char*	defaultsetname)
 {
-	const char* jsonpath = "/home/yuhui/Documents/TP3S_bp/data/157.tp3s";
-	TEST *testArr;
-	VEHICLE *vehicleArr;
-	int **rule;
+	SCIP* scip = NULL;
 
-	size_t num_test = get_tests_size(jsonpath);
-	size_t num_vehicle = get_vehicle_size(jsonpath);
+	/* initialize scip */
+	SCIP_CALL( SCIPcreate(&scip));
 
-	printf("num test: %d, num vehicle: %d\n", num_test, num_vehicle);
+	SCIPenableDebugSol(scip);
 
-	// initialize the test arr
-	testArr = (TEST*) malloc(num_test * sizeof(TEST));
+	/* include tp3s reader */
+	SCIP_CALL( SCIPincludeReaderTP3S(scip));
 
-	read_in_tests(jsonpath, testArr);
+	/*include tp3s branching and branching data */
 
-	for (int i = 0; i < num_test; ++i)
+	/* include tp3s pricer */
+
+	/* include default plugins */
+	SCIP_CALL(SCIPincludeDefaultPlugins(scip));
+
+	/* disable restarts */
+	SCIP_CALL( SCIPsetIntParam(scip, "presolving/maxrestarts", 0));
+
+	/* turn off all separation algorithms */
+	SCIP_CALL( SCIPsetSeparating(scip, SCIP_PARAMSETTING_OFF, TRUE));
+
+	/**********************************
+    * Process command line arguments *
+    **********************************/
+   	SCIP_CALL( SCIPprocessShellArguments(scip, argc, argv, defaultsetname) );
+
+   /********************
+    * Deinitialization *
+    ********************/
+
+   	SCIP_CALL( SCIPfree(&scip) );
+
+   	BMScheckEmptyMemory();
+
+   	return SCIP_OKAY;
+}
+
+
+
+
+int main(
+	int		argc,
+	char**	argv)
+{
+	SCIP_RETCODE retcode;
+
+	retcode = runShell(argc, argv, "scip.set");
+	if (retcode != SCIP_OKAY)
 	{
-		printf("%d, %d, %d, %d\n", testArr[i].tid, testArr[i].release, testArr[i].dur, testArr[i].deadline);
+		SCIPprintError(retcode);
+		return -1;
 	}
-
-	vehicleArr = (VEHICLE*) malloc(num_vehicle * sizeof(VEHICLE));
-
-	read_in_vehicles(jsonpath, vehicleArr);
-
-	for (int i=0; i < num_vehicle; ++i)
-	{
-		printf("%d, %d\n", vehicleArr[i].vid, vehicleArr[i].release);
-	}
-
-	rule = malloc(sizeof(int*) * num_test);
-	for (int i=0; i < num_test; i++)
-	{
-		rule[i] = malloc(sizeof(int) * num_test);
-	}
-
-
-	read_in_rehit_rules(jsonpath, rule);
-
-	for (int i=0; i < num_test; ++i)
-	{
-		for (int j=0; j<num_test; ++j)
-		{
-			printf("%d, vs %d, %d\n", i,j,rule[i][j]);
-			assert(rule[i][j]==0 || rule[i][j]==1);
-		}
-	}
-
-
-	free(testArr);
-	free(vehicleArr);
-
-	for (int i=0; i < num_test; ++i)
-	{
-		free(rule[i]);
-	}
-	free(rule);
 
 	return 0;
 }
