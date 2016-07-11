@@ -13,6 +13,7 @@
 #define READER_DESC			"file reader for tp3s problems"
 #define READER_EXTENSION	"tp3s"
 
+
 static 
 SCIP_DECL_READERREAD(readerReadTP3S)
 {
@@ -34,30 +35,31 @@ SCIP_DECL_READERREAD(readerReadTP3S)
 	printf("num tests: %d, num vehicles: %d\n", numTests, numVehicles);
 
 	/* allocate memory */
-	tests = malloc(sizeof(TEST) * numTests);
-	vehicles = malloc(sizeof(VEHICLE) * numVehicles);
-	rehits = malloc(sizeof(int) * numTests);
-	for (int i=0; i<numTests; i++)
+	SCIP_CALL( SCIPallocBufferArray(scip, &tests, numTests));
+	SCIP_CALL( SCIPallocBufferArray(scip, &vehicles, numVehicles));
+	SCIP_CALL( SCIPallocBufferArray(scip, &rehits, numTests));
+	for (int i = 0; i < numTests; ++i)
 	{
-		rehits[i] = malloc(sizeof(int) * numTests);
+		SCIP_CALL( SCIPallocBufferArray(scip, &rehits[i], numTests));
 	}
+
 
 	read_in_tests(filename, tests);
 	read_in_vehicles(filename, vehicles);
 	read_in_rehit_rules(filename, rehits);
-
-
-	/* free of mem */
-	free(tests);
-	free(vehicles);
-	for (int i=0; i<numTests; i++)
+	
+	
+	SCIPfreeBufferArray(scip, &tests);
+	SCIPfreeBufferArray(scip, &vehicles);
+	for (int i = 0; i < numTests; ++i)
 	{
-		free(rehits[i]);
+		SCIPfreeBufferArray(scip, &rehits[i]);
 	}
-	free(rehits);
-
+	SCIPfreeBufferArray(scip, &rehits);
 
 	*result = SCIP_SUCCESS;
+
+
 
 	return SCIP_OKAY;
 }

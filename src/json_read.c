@@ -120,6 +120,7 @@ void read_in_rehit_rules(const char* path, int **rule)
 
 	void *iter, *inner_iter;
 	int max_test_id = get_max_test_id(path);
+	int num_test = get_tests_size(path);
 
 	// create a very large array
 	id_remap = (int*) malloc(max_test_id * sizeof(int));
@@ -176,8 +177,9 @@ void read_in_rehit_rules(const char* path, int **rule)
 			real_id1 = id_remap[id1];
 			real_id2 = id_remap[id2];
 
-			assert(real_id1 > 0);
-			assert(real_id2 > 0);
+			assert(real_id1 >= 0 && real_id1 < num_test);
+			assert(real_id2 >= 0 && real_id2 < num_test);
+
 
 			rule[real_id1][real_id2] = ok;
 
