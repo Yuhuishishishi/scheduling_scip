@@ -1,15 +1,16 @@
-#ifndef _SCIP_PROBDATA_TP3S
-#define _SCIP_PROBDATA_TP3S 
+#ifndef _SCIP_PROBDATA_TP3S_H_
+#define _SCIP_PROBDATA_TP3S_H_
 
 #include "scip/scip.h"
+#include "data_structure.h"
 
 extern 
 SCIP_RETCODE SCIPprobdataCreate(
 	SCIP*			scip,
 	const char*		probname,
 	TEST*			tests,
-	int 			numTests,
 	VEHICLE*		vehicles,
+	int 			numTests,
 	int 			numVehicles,
 	int**			rehits);
 
@@ -36,20 +37,26 @@ int SCIPprobdataGetNumVehicles(
 /** returns array of all variables ordered in the way they got generated */
 extern
 SCIP_VAR** SCIPprobdataGetVars(
-   SCIP_PROBDATA*        probdata            /**< problem data */
+   	SCIP_PROBDATA*        probdata            /**< problem data */
    );
 
 /** returns number of variables */
 extern
 int SCIPprobdataGetNVars(
-   SCIP_PROBDATA*        probdata            /**< problem data */
+   	SCIP_PROBDATA*        probdata            /**< problem data */
    );
 
 /** returns array of set partitioning constrains */
 extern
-SCIP_CONS** SCIPprobdataGetConss(
-   SCIP_PROBDATA*        probdata            /**< problem data */
+SCIP_CONS** SCIPprobdataGetTestConss(
+   	SCIP_PROBDATA*        probdata            /**< problem data */
    );
+
+extern
+SCIP_CONS** SCIPprobdataGetVehicleConss(
+	SCIP_PROBDATA*		probdata
+	);
+
 
 /** adds given variable to the problem data */
 extern
