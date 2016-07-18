@@ -160,41 +160,57 @@ SCIP_RETCODE createInitialColumns(
 
 		for (int v = 0; v < numVehicles; ++v)
 		{
+         int vehicleRelease;
+         int testDur, testDeadline, testRelease;
+         int realRelease;
+         int cost;
+         int a;
+
 			(void) SCIPsnprintf(name, SCIP_MAXSTRLEN, "item_%d_on_vehicle_%d", i,v);
 
+         vehicleRelease = vehicles[v].release;
+         testDur = tests[i].dur;
+         testDeadline = tests[i].deadline;
+         testRelease = tests[i].release;
+
 			/* compute the cost of assignment */
+         realRelease = vehicleRelease < testRelease ? vehicleRelease : testRelease;
+         cost = realRelease + testDur - testDeadline;
+         cost = cost > 0 ? cost : 0;
+         cost += 50;
 
 			/* create variable */
+         SCIP_CALL( SCIPcreateVarTP3S(scip, &var, name, cost, TRUE, TRUE, NULL));
 
 			/* add variable to the problem */
-      		SCIP_CALL( SCIPaddVar(scip, var) );
+      	SCIP_CALL( SCIPaddVar(scip, var) );
 
-      		 /* store variable in the problme data */
-      		SCIP_CALL( SCIPprobdataAddVar(scip, probdata, var) );
+      	/* store variable in the problme data */
+      	SCIP_CALL( SCIPprobdataAddVar(scip, probdata, var) );
 
-      		/* add variable to corresponding set covering constraint */
-      		SCIP_CALL( SCIPaddCoefSetppc(scip, testConss[i], var) );
-      		SCIP_CALL( SCIPaddCoefSetppc(scip, vehicleConss[v], var));
-
-
-      		/* create the variable data for the variable; the variable data contains the information in which constraints the
-       		* variable appears */
-
-       		/* add the variable data to the variable */
-      		// SCIPvarSetData(var, vardata);
+      	/* add variable to corresponding set covering constraint */
+      	SCIP_CALL( SCIPaddCoefSetppc(scip, testConss[i], var) );
+      	SCIP_CALL( SCIPaddCoefSetppc(scip, vehicleConss[v], var));
 
 
-      		/* change the upper bound of the binary variable to lazy since the upper bound is already enforced
+      	/* create the variable data for the variable; the variable data contains the information in which constraints the
+       	* variable appears */
+         a = i;
+         SCIP_CALL( SCIPvardataCreateTP3S(scip, &vardata, &a, 1, v));
+
+       	/* add the variable data to the variable */
+      	SCIPvarSetData(var, vardata);
+
+
+      	/* change the upper bound of the binary variable to lazy since the upper bound is already enforced
        		* due to the objective function the set covering constraint;
        		* The reason for doing is that, is to avoid the bound of x <= 1 in the LP relaxation since this bound
        		* constraint would produce a dual variable which might have a positive reduced cost
        		*/
-      		SCIP_CALL( SCIPchgVarUbLazy(scip, var, 1.0) );
+      	SCIP_CALL( SCIPchgVarUbLazy(scip, var, 1.0) );
 
-
-
-      		/* release variable */
-      		SCIP_CALL( SCIPreleaseVar(scip, &var) );
+      	/* release variable */
+      	SCIP_CALL( SCIPreleaseVar(scip, &var) );
 		}
 	}
 
@@ -208,42 +224,74 @@ SCIP_RETCODE createInitialColumns(
 				continue;
 			for (int v = 0; v < numVehicles; ++v)
 			{
-				(void) SCIPsnprintf(name, SCIP_MAXSTRLEN, "item_%d_on_vehicle_%d", i,v);
+
+            int vehicleRelease;
+            int realRelease;
+            int cost = 0;
+            int test1Dur, test1Release, test1Deadline;
+            int test2Dur, test2Release, test2Deadline;
+            int* consids;
+
+				(void) SCIPsnprintf(name, SCIP_MAXSTRLEN, "item_%d,%d_on_vehicle_%d", i,j,v);
+
+            vehicleRelease = vehicles[v].release;
+            
+            test1Dur = tests[i].dur;
+            test1Deadline = tests[i].deadline;
+            test1Release = tests[i].release;
+
+            test2dur = tests[j].dur;
+            test2Deadline = tests[j].deadline;
+            test2Release = tests[j].release;
 
 				/* compute the cost of assignment */
+            realRelease = vehicleRelease < test1Release ? vehicleRelease : test1Release;
+            realRelease += test1Dur;
+            cost = realRelease - test1Deadline;
+            cost = cost > 0 ? cost : 0;
+
+            realRelease = realRelease < test2Release ? realRelease : test2Release;
+            realRelease += test2Dur;
+            cost += (realRelease - test2Deadline > 0) ? (realRelease - test2Deadline) : 0;
 
 				/* create variable */
+            SCIP_CALL( SCIPcreateVarTP3S(scip, &var, name, cost, TRUE, TRUE, NULL));
+
 
 				/* add variable to the problem */
-	      		SCIP_CALL( SCIPaddVar(scip, var) );
+	      	SCIP_CALL( SCIPaddVar(scip, var) );
 
-	      		 /* store variable in the problme data */
-	      		SCIP_CALL( SCIPprobdataAddVar(scip, probdata, var) );
+	      	/* store variable in the problme data */
+	      	SCIP_CALL( SCIPprobdataAddVar(scip, probdata, var) );
 
-	      		/* add variable to corresponding set covering constraint */
-	      		SCIP_CALL( SCIPaddCoefSetppc(scip, testConss[i], var) );
-	      		SCIP_CALL( SCIPaddCoefSetppc(scip, testConss[j], var) );
-	      		SCIP_CALL( SCIPaddCoefSetppc(scip, vehicleConss[v], var));
+	      	/* add variable to corresponding set covering constraint */
+	      	SCIP_CALL( SCIPaddCoefSetppc(scip, testConss[i], var) );
+	      	SCIP_CALL( SCIPaddCoefSetppc(scip, testConss[j], var) );
+	      	SCIP_CALL( SCIPaddCoefSetppc(scip, vehicleConss[v], var));
 
 
-	      		/* create the variable data for the variable; the variable data contains the information in which constraints the
+	      	/* create the variable data for the variable; the variable data contains the information in which constraints the
 	       		* variable appears */
+            SCIP_CALL( SCIPallocBufferArray(scip, &consids, 2));
+            consids[0] = i;
+            consids[1] = j;
+            SCIP_CALL( SCIPvardataCreateTP3S(scip, &vardata, consids, 2, v));
 
-	       		/* add the variable data to the variable */
-	      		// SCIPvarSetData(var, vardata);
+	       	/* add the variable data to the variable */
+	      	SCIPvarSetData(var, vardata);
 
 
-	      		/* change the upper bound of the binary variable to lazy since the upper bound is already enforced
+	      	/* change the upper bound of the binary variable to lazy since the upper bound is already enforced
 	       		* due to the objective function the set covering constraint;
 	       		* The reason for doing is that, is to avoid the bound of x <= 1 in the LP relaxation since this bound
 	       		* constraint would produce a dual variable which might have a positive reduced cost
 	       		*/
-	      		SCIP_CALL( SCIPchgVarUbLazy(scip, var, 1.0) );
+	      	SCIP_CALL( SCIPchgVarUbLazy(scip, var, 1.0) );
 
+	      	/* release variable */
+	      	SCIP_CALL( SCIPreleaseVar(scip, &var) );
 
-
-	      		/* release variable */
-	      		SCIP_CALL( SCIPreleaseVar(scip, &var) );
+            SCIPfreeBufferArray(scip, &consids);
 			
 			}
 		}

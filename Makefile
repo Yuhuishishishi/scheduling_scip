@@ -38,7 +38,8 @@ MAINNAME	=	tp3s
 CMAINOBJ	=	json_read.o \
 			main.o \
 			reader_tp3s.o \
-			probdata_tp3s.o
+			probdata_tp3s.o \
+			vardata_tp3s.o
 
 CXXMAINOBJ	=	 
 
