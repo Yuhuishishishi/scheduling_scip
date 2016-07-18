@@ -1,7 +1,7 @@
 #ifndef _SCIP_VARDATA_TP3S_
 #define _SCIP_VARDATA_TP3S_ 
 
-#include "sicp/scip.h"
+#include "scip/scip.h"
 
 extern 
 SCIP_RETCODE SCIPvardataCreateTP3S(

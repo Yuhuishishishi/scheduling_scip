@@ -1,7 +1,7 @@
-#include "scip/scip.h"
 #include "probdata_tp3s.h"
-
-
+#include "vardata_tp3s.h"
+#include "scip/cons_setppc.h"
+#include "scip/scip.h"
 
 #define EVENTHDLR_NAME         "addedvar"
 #define EVENTHDLR_DESC         "event handler for catching added variables"
@@ -36,6 +36,8 @@ SCIP_DECL_EVENTEXEC(eventExecAddedVar)
 
    /* add new variable to probdata */
    SCIP_CALL( SCIPprobdataAddVar(scip, SCIPgetProbData(scip), SCIPeventGetVar(event)) );
+
+   return SCIP_OKAY;
 }
 
 
@@ -125,6 +127,8 @@ SCIP_RETCODE probdataFree(
 
    /* free probdata */
    SCIPfreeMemory(scip, probdata);
+
+   return SCIP_OKAY;
 }
 
 static
@@ -135,6 +139,7 @@ SCIP_RETCODE createInitialColumns(
 {
 	SCIP_CONS** testConss;
 	SCIP_CONS** vehicleConss;
+   SCIP_VARDATA* vardata;
 	SCIP_VAR* var;
 
 	char name[SCIP_MAXSTRLEN];
@@ -240,7 +245,7 @@ SCIP_RETCODE createInitialColumns(
             test1Deadline = tests[i].deadline;
             test1Release = tests[i].release;
 
-            test2dur = tests[j].dur;
+            test2Dur = tests[j].dur;
             test2Deadline = tests[j].deadline;
             test2Release = tests[j].release;
 
@@ -451,6 +456,8 @@ SCIP_RETCODE SCIPprobdataCreate(
    	/* free local buffer arrays */
    	SCIPfreeBufferArray(scip, &testConss);
    	SCIPfreeBufferArray(scip, &vehicleConss);
+
+      return SCIP_OKAY;
 
 }
 

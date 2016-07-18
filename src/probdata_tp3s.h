@@ -2,6 +2,7 @@
 #define _SCIP_PROBDATA_TP3S_H_
 
 #include "scip/scip.h"
+#include "vardata_tp3s.h"
 #include "data_structure.h"
 
 extern 
