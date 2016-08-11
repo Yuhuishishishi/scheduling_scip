@@ -18,12 +18,12 @@ SCIP_RETCODE SCIPincludeConshdlrTestOnVehicle(
 
 /** creates and captures a testOnVehicle constraint */
 extern
-SCIP_RETCODE SCIPcreateConsSamediff(
+SCIP_RETCODE SCIPcreateConsTestOnVehicle(
    SCIP*                 scip,               /**< SCIP data structure */
    SCIP_CONS**           cons,               /**< pointer to hold the created constraint */
    const char*           name,               /**< name of constraint */
    int                   tid,	             /**< item id one */
-   int 					 vid,				 /**< vehicle id */
+   int 					    vid,				 /**< vehicle id */
    CONSTYPE              type,               /**< stores whether the items have to be in the SAME or DIFFER packing */
    SCIP_NODE*            node,               /**< the node in the B&B-tree at which the cons is sticking */
    SCIP_Bool             local               /**< is constraint only valid locally? */
@@ -46,7 +46,7 @@ int SCIPgetVidTestOnVehicle(
 
 /** return constraint type ALLOW or FORBID */
 extern
-CONSTYPE SCIPgetTypeSamediff(
+CONSTYPE SCIPgetTypeTestOnVehicle(
    SCIP*                 scip,               /**< SCIP data structure */
    SCIP_CONS*            cons                /**< samediff constraint */
    );

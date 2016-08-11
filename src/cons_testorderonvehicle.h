@@ -12,13 +12,13 @@ typedef enum ConsType CONSTYPE;
 
 /** creates the handler for element constraints and includes it in SCIP */
 extern
-SCIP_RETCODE SCIPincludeConshdlrTestOnVehicle(
+SCIP_RETCODE SCIPincludeConshdlrTestOrderOnVehicle(
    SCIP*                 scip                /**< SCIP data structure */
    );
 
 /** creates and captures a testOnVehicle constraint */
 extern
-SCIP_RETCODE SCIPcreateConsSamediff(
+SCIP_RETCODE SCIPcreateConsTestOrderOnVehicle(
    SCIP*                 scip,               /**< SCIP data structure */
    SCIP_CONS**           cons,               /**< pointer to hold the created constraint */
    const char*           name,               /**< name of constraint */
@@ -46,7 +46,7 @@ int SCIPgetTid2TestOrderOnVehicle(
 
 /** returns vehicle id */
 extern
-int SCIPgetVidTestOnVehicle(
+int SCIPgetVidTestOrderOnVehicle(
    SCIP*                 scip,               /**< SCIP data structure */
    SCIP_CONS*            cons                /**< samediff constraint */
    );
@@ -54,7 +54,7 @@ int SCIPgetVidTestOnVehicle(
 
 /** return constraint type ALLOW or FORBID */
 extern
-CONSTYPE SCIPgetTypeSamediff(
+CONSTYPE SCIPgetTypeTestOrderOnVehicle(
    SCIP*                 scip,               /**< SCIP data structure */
    SCIP_CONS*            cons                /**< samediff constraint */
    );
