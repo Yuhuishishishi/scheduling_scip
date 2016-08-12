@@ -1,4 +1,4 @@
-##ifndef _SCIP_CONS_SAMEDIFF_H
+#ifndef _SCIP_CONS_SAMEDIFF_H
 #define _SCIP_CONS_SAMEDIFF_H 
 
 #include "scip/scip.h"

@@ -24,6 +24,12 @@ int* SCIPvardataGetConsids(
    SCIP_VARDATA*         vardata             /**< variable data */
    );
 
+/** return vehicle constraint id */
+extern
+int SCIPvardataGetVehicleConsids(
+   SCIP_VARDATA*         vardata
+   );
+
 
 /** creates variable */
 extern

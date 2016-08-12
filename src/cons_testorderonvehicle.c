@@ -28,6 +28,8 @@ struct SCIP_ConsData
    SCIP_NODE*            node;               /**< the node in the B&B-tree at which the cons is sticking */
 };
 
+
+
 int SCIPgetTid1TestOrderOnVehicle(
    SCIP*                 scip,               /**< SCIP data structure */
    SCIP_CONS*            cons                /**< samediff constraint */

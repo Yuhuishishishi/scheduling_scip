@@ -90,6 +90,12 @@ int* SCIPvardataGetConsids(
    return vardata->testConsids;
 }
 
+int SCIPvardataGetVehicleConsids(
+   SCIP_VARDATA*        vardata)
+{
+   return vardata->vehicleConsid;
+}
+
 /** creates variable */
 SCIP_RETCODE SCIPcreateVarTP3S(
    SCIP*                 scip,               /**< SCIP data structure */
