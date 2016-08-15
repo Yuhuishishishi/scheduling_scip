@@ -5,7 +5,7 @@
 
 enum ConsType 
 {
-	ALLOW = 1,
+	ENFORCE = 1,
 	FORBID = 0
 }
 typedef enum ConsType CONSTYPE;

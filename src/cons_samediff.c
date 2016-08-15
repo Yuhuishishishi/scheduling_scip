@@ -63,6 +63,20 @@ SCIP_RETCODE consdataCreate(
     return SCIP_OKAY;
 }
 
+/** display constraints */
+static 
+void consdataPrint(
+    SCIP*             scip,
+    SCIP_CONSDATA*    consdata,
+    FILE*             file
+    )
+{
+    SCIPinfoMessage(scip, file, "%s(%d,%d) at node %d\n",
+        consdata->type == SAME ? "same" : "diff",
+        consdata->tid1, consdata->tid2, SCIPnodeGetNumber(consdata->node));
+
+}
+
 /** fixes a variable to zero if the corresponding packings are not valid for this constraint/node (due to branching) */
 static 
 SCIP_RETCODE checkVariable(
