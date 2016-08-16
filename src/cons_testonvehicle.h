@@ -7,7 +7,7 @@ enum ConsType
 {
 	ENFORCE = 1,
 	FORBID = 0
-}
+};
 typedef enum ConsType CONSTYPE;
 
 /** creates the handler for element constraints and includes it in SCIP */

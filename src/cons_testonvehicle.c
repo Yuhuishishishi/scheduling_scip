@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <string.h>
 
 #include "cons_testonvehicle.h"
 #include "probdata_tp3s.h"
@@ -14,6 +15,7 @@
 #define CONSHDLR_DELAYPROP        FALSE /**< should propagation method be delayed, if other propagators found reductions? */
 #define CONSHDLR_NEEDSCONS         TRUE /**< should the constraint handler be skipped, if no constraints are available? */
 
+#define CONSHDLR_PROP_TIMING       SCIP_PROPTIMING_BEFORELP
 
 struct SCIP_ConsData
 {
@@ -31,13 +33,11 @@ struct SCIP_ConsData
 static
 SCIP_RETCODE consdataCreate(
 	SCIP*                 scip,               /**< SCIP data structure */
-   	SCIP_CONS**           cons,               /**< pointer to hold the created constraint */
-   	const char*           name,               /**< name of constraint */
+   	SCIP_CONSDATA**           consdata,               /**< pointer to hold the created constraint */
    	int                   tid,	             /**< item id one */
    	int 				  vid,				 /**< vehicle id */
    	CONSTYPE              type,               /**< stores whether the items have to be in the SAME or DIFFER packing */
-   	SCIP_NODE*            node,               /**< the node in the B&B-tree at which the cons is sticking */
-   	SCIP_Bool             local               /**< is constraint only valid locally? */
+   	SCIP_NODE*            node              /**< the node in the B&B-tree at which the cons is sticking */
 	)
 {
 	assert( scip != NULL);
@@ -69,7 +69,7 @@ void consdataPrint(
 {
 	SCIPinfoMessage(scip, file, "%s(%d,%d) at node %d\n",
 		consdata->type == ENFORCE? "enforce" : "forbid",
-		consdata->tid, consdata->vid, SCIPnodeGetNumber(node) );
+		consdata->tid, consdata->vid, SCIPnodeGetNumber(consdata->node) );
 }
 
 /** fixes a variable to zero if the corresponding packings are not valid for this constraint/node (due to branching) */
@@ -118,8 +118,8 @@ SCIP_RETCODE checkVariable(
    	/** situations the ub needs to be 0:
    		ENFORCE the test to be assigned to the test, but the column assigns the test to other vehicle
    		FORBID such assignment, but the column makes the assignment */
-   	if (type == ENFORCE && existid && (consdata->vid != vehicleIds)
-   			|| type == FORBID && existid && (consdata->vid = vehicleIds))
+   	if ((type == ENFORCE && existid && (consdata->vid != vehicleIds))
+   			|| (type == FORBID && existid && (consdata->vid = vehicleIds)))
    	{
    		SCIP_CALL( SCIPfixVar(scip, var, 0.0, &infeasible, &fixed) );
       	if( infeasible )
@@ -130,7 +130,7 @@ SCIP_RETCODE checkVariable(
       	}
       	else
       	{
-        	ssert(fixed);
+        	assert(fixed);
        		(*nfixedvars)++;
       	}
    	}
@@ -261,11 +261,258 @@ SCIP_DECL_CONSDELETE(consDeleteTestOnVehicle)
    return SCIP_OKAY;
 }
 
+/** transforms constraint data into data belonging to the transformed problem */
+static
+SCIP_DECL_CONSTRANS(consTransTestOnVehicle)
+{
+	SCIP_CONSDATA* sourcedata;
+   	SCIP_CONSDATA* targetdata;
 
+   	assert(conshdlr != NULL);
+   	assert(strcmp(SCIPconshdlrGetName(conshdlr), CONSHDLR_NAME) == 0);
+   	assert(SCIPgetStage(scip) == SCIP_STAGE_TRANSFORMING);
+   	assert(sourcecons != NULL);
+   	assert(targetcons != NULL);
 
+   	sourcedata = SCIPconsGetData(sourcecons);
+   	assert(sourcedata != NULL);
+
+   	/* create constraint data for target constraint */
+   	SCIP_CALL( consdataCreate(scip, &targetdata, 
+   		sourcedata->tid, sourcedata->vid, sourcedata->type, sourcedata->node));
+
+   	/* create target constraint */
+   	SCIP_CALL( SCIPcreateCons(scip, targetcons, SCIPconsGetName(sourcecons), conshdlr, targetdata,
+         SCIPconsIsInitial(sourcecons), SCIPconsIsSeparated(sourcecons), SCIPconsIsEnforced(sourcecons),
+         SCIPconsIsChecked(sourcecons), SCIPconsIsPropagated(sourcecons),
+         SCIPconsIsLocal(sourcecons), SCIPconsIsModifiable(sourcecons),
+         SCIPconsIsDynamic(sourcecons), SCIPconsIsRemovable(sourcecons), SCIPconsIsStickingAtNode(sourcecons)) );
+
+   	return SCIP_OKAY;
+}
+
+/** constraint enforcing method of constraint handler for LP solutions */
+#define consEnfolpTestOnVehicle NULL
+
+/** constraint enforcing method of constraint handler for pseudo solutions */
+#define consEnfopsTestOnVehicle NULL
+
+/** feasibility check method of constraint handler for integral solutions */
+#define consCheckTestOnVehicle NULL
+
+/** domain propagation method of constraint handler */
+static
+SCIP_DECL_CONSPROP(consPropTestOnVehicle)
+{
+	SCIP_PROBDATA* probdata;
+	SCIP_CONSDATA* consdata;
+
+	SCIP_VAR** vars;
+	int nvars;
+	int c;
+
+	assert(scip != NULL);
+	assert(scip != NULL);
+   	assert(strcmp(SCIPconshdlrGetName(conshdlr), CONSHDLR_NAME) == 0);
+   	assert(result != NULL);
+
+   	SCIPdebugMessage("propagation constraints of constraint handler <"CONSHDLR_NAME">\n");
+
+   	probdata = SCIPgetProbData(scip);
+   	assert( probdata != NULL);
+
+   	vars = SCIPprobdataGetVars(probdata);
+   	nvars = SCIPprobdataGetNVars(probdata);
+
+   	*result = SCIP_DIDNOTFIND;
+
+   	for (c=0; c<nconss; ++c)
+   	{
+   		consdata = SCIPconsGetData(conss[c]);
+#ifndef NDEBUG
+   		{
+   		    /* check if there are no equal consdatas */
+   		    SCIP_CONSDATA* consdata2;
+   		    int i;
+
+   		    for (i=c+1; i<nconss; ++i)
+   		    {
+   		    	consdata2 = SCIPconsGetData(conss[i]);
+   		    	assert( !(consdata->tid == consdata2->tid 
+   		    		&& consdata->vid == consdata2->vid));
+   		    }
 	
+   		}
+#endif
+   		if (!consdata->propagated)
+   		{
+   			SCIPdebugMessage("propagate constraint <%s> ", SCIPconsGetName(conss[c]));
+   			SCIPdebug( consdataPrint(scip, consdata, NULL) );
+
+         	SCIP_CALL( consdataFixVariables(scip, consdata, vars, nvars, result) );
+         	consdata->npropagations++;
+
+         	if (*result != SCIP_CUTOFF)
+         	{
+         		consdata->propagated = TRUE;
+         		consdata->npropagatedvars = nvars;
+         	}
+         	else
+         		break;
+   		}
+
+   		assert( consdataCheck(scip, probdata, consdata, FALSE));
+   	}
+
+   	return SCIP_OKAY;
+}
 
 
+/** variable rounding lock method of constraint handler */
+#define consLockTestOnVehicle NULL
+
+/** constraint activation notification method of constraint handler */
+static 
+SCIP_DECL_CONSACTIVE(consActiveTestOnVehicle)
+{
+	SCIP_CONSDATA* consdata;
+   	SCIP_PROBDATA* probdata;
+
+   	assert(scip != NULL);
+   	assert(strcmp(SCIPconshdlrGetName(conshdlr), CONSHDLR_NAME) == 0);
+   	assert(cons != NULL);
+
+   	probdata = SCIPgetProbData(scip);
+   	assert(probdata != NULL);
+
+   	consdata = SCIPconsGetData(cons);
+   	assert(consdata != NULL);
+   	assert(consdata->npropagatedvars <= SCIPprobdataGetNVars(probdata));
+
+   	SCIPdebugMessage("activate constraint <%s> at node <%"SCIP_LONGINT_FORMAT"> in depth <%d>: ",
+    SCIPconsGetName(cons), SCIPnodeGetNumber(consdata->node), SCIPnodeGetDepth(consdata->node));
+   	SCIPdebug( consdataPrint(scip, consdata, NULL) );
+
+   	if( consdata->npropagatedvars != SCIPprobdataGetNVars(probdata) )
+   	{
+      	SCIPdebugMessage("-> mark constraint to be repropagated\n");
+      	consdata->propagated = FALSE;
+      	SCIP_CALL( SCIPrepropagateNode(scip, consdata->node) );
+   	}
+
+   	/* check if all previously generated variables are valid for this constraint */
+   	assert( consdataCheck(scip, probdata, consdata, TRUE) );
+
+   	return SCIP_OKAY;
+}
+
+/** constraint deactivation notification method of constraint handler */
+static 
+SCIP_DECL_CONSDEACTIVE(consDeactiveTestOnVehicle)
+{
+   	SCIP_CONSDATA* consdata;
+   	SCIP_PROBDATA* probdata;
+
+   	assert(scip != NULL);
+   	assert(strcmp(SCIPconshdlrGetName(conshdlr), CONSHDLR_NAME) == 0);
+   	assert(cons != NULL);
+
+   	consdata = SCIPconsGetData(cons);
+   	assert(consdata != NULL);
+   	assert(consdata->propagated || SCIPgetNChildren(scip) == 0);
+
+   	probdata = SCIPgetProbData(scip);
+   	assert(probdata != NULL);
+
+   	SCIPdebugMessage("deactivate constraint <%s> at node <%"SCIP_LONGINT_FORMAT"> in depth <%d>: ",
+    	  SCIPconsGetName(cons), SCIPnodeGetNumber(consdata->node), SCIPnodeGetDepth(consdata->node));
+   	SCIPdebug( consdataPrint(scip, consdata, NULL) );
+
+   	/* set the number of propagated variables to current number of variables is SCIP */
+   	consdata->npropagatedvars = SCIPprobdataGetNVars(probdata);
+
+   	return SCIP_OKAY;	
+}
+
+/** constraint display method of constraint handler */
+static
+SCIP_DECL_CONSPRINT(consPrintTestOnVehicle)
+{  /*lint --e{715}*/
+   	SCIP_CONSDATA*  consdata;
+
+   	consdata = SCIPconsGetData(cons);
+   	assert(consdata != NULL);
+
+   	consdataPrint(scip, consdata, file);
+
+   	return SCIP_OKAY;
+}
+
+/** creates the handler for samediff constraints and includes it in SCIP */
+SCIP_RETCODE SCIPincludeConshdlrTestOnVehicle(
+   SCIP*                 scip                /**< SCIP data structure */
+   )
+{
+	SCIP_CONSHDLRDATA* conshdlrdata = NULL;
+   	SCIP_CONSHDLR* conshdlr = NULL;
+
+   	/* include constraint handler */
+   	SCIP_CALL( SCIPincludeConshdlrBasic(scip, &conshdlr, CONSHDLR_NAME, CONSHDLR_DESC,
+         CONSHDLR_ENFOPRIORITY, CONSHDLR_CHECKPRIORITY, CONSHDLR_EAGERFREQ, CONSHDLR_NEEDSCONS,
+         consEnfolpTestOnVehicle, consEnfopsTestOnVehicle, consCheckTestOnVehicle, consLockTestOnVehicle,
+         conshdlrdata) );
+
+   	assert(conshdlr != NULL);
+
+   	SCIP_CALL( SCIPsetConshdlrDelete(scip, conshdlr, consDeleteTestOnVehicle) );
+   	SCIP_CALL( SCIPsetConshdlrTrans(scip, conshdlr, consTransTestOnVehicle) );
+   	SCIP_CALL( SCIPsetConshdlrProp(scip, conshdlr, consPropTestOnVehicle, CONSHDLR_PROPFREQ, CONSHDLR_DELAYPROP,
+         CONSHDLR_PROP_TIMING) );
+   	SCIP_CALL( SCIPsetConshdlrActive(scip, conshdlr, consActiveTestOnVehicle) );
+   	SCIP_CALL( SCIPsetConshdlrDeactive(scip, conshdlr, consDeactiveTestOnVehicle) );
+   	SCIP_CALL( SCIPsetConshdlrPrint(scip, conshdlr, consPrintTestOnVehicle) );
+
+   	return SCIP_OKAY;
+}
+
+SCIP_RETCODE SCIPcreateConsTestOnVehicle(
+   SCIP*                 scip,               /**< SCIP data structure */
+   SCIP_CONS**           cons,               /**< pointer to hold the created constraint */
+   const char*           name,               /**< name of constraint */
+   int                   tid,	             /**< item id one */
+   int 					    vid,				 /**< vehicle id */
+   CONSTYPE              type,               /**< stores whether the items have to be in the SAME or DIFFER packing */
+   SCIP_NODE*            node,               /**< the node in the B&B-tree at which the cons is sticking */
+   SCIP_Bool             local               /**< is constraint only valid locally? */
+   )
+{
+	SCIP_CONSHDLR* conshdlr;
+   	SCIP_CONSDATA* consdata;
+
+   	/* find the samediff constraint handler */
+   	conshdlr = SCIPfindConshdlr(scip, CONSHDLR_NAME);
+   	if( conshdlr == NULL )
+   	{
+      	SCIPerrorMessage("test on vehicle constraint handler not found\n");
+      	return SCIP_PLUGINNOTFOUND;
+   	}
+
+   	/* create the constraint specific data */
+   	SCIP_CALL( consdataCreate(scip, &consdata, tid, vid, type, node) );
+
+   /* create constraint */
+   SCIP_CALL( SCIPcreateCons(scip, cons, name, conshdlr, consdata, FALSE, FALSE, FALSE, FALSE, TRUE,
+         local, FALSE, FALSE, FALSE, TRUE) );
+
+   SCIPdebugMessage("created constraint: ");
+   SCIPdebug( consdataPrint(scip, consdata, NULL) );
+
+   return SCIP_OKAY;
+
+}
+
+
+/** return test id */
 int SCIPgetTidTestOnVehicle(
 	SCIP*				scip,
 	SCIP_CONS*			cons)
@@ -280,6 +527,7 @@ int SCIPgetTidTestOnVehicle(
 	return consdata->tid;
 }
 
+/** return vehicle id */
 int SCIPgetVidTestOnVehicle(
 	SCIP*				scip,
 	SCIP_CONS*			cons)
@@ -294,7 +542,8 @@ int SCIPgetVidTestOnVehicle(
 	return consdata->vid;
 }
 
-int SCIPgetTypeTestOnVehicle(
+/** return constraint type ENFORCE or FORBID */
+CONSTYPE SCIPgetTypeTestOnVehicle(
 	SCIP*				scip,
 	SCIP_CONS*			cons)
 {
